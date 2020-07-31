@@ -5,6 +5,7 @@ import cv2
 import matplotlib.pyplot as plt
 from PIL import Image, ImageDraw, ImageFont
 
+
 class File:
     def __init__(self, path, type, layer, len, parent_node):
         self.name = os.path.basename(path)
@@ -73,16 +74,23 @@ class File:
                          (curve_x_point, self.tsy + LINE_PADDING_Y),
                          (0, 0, 0), 2)
 
+        title_text_position = [self.tsx+TITLE_TEXT_LEFT_PADDING,
+                              self.tsy+TITLE_TEXT_UPPER_PADDING,
+                              self.tex-TITLE_TEXT_LEFT_PADDING,
+                              None]
+        body_text_position = [self.bsx + BODY_LEFT_PADDING*4,
+                              self.bsy + BODY_UPPER_PADDING,
+                              self.bex - BODY_LEFT_PADDING*4,
+                              self.bey]
         if self.type is "dir":
             color = DIR_COLOR
             cv2.rectangle(white_board, (self.sx, self.sy), (self.ex, self.ey), color, -1)
             color = TITLE_COLOR
             cv2.rectangle(white_board, (self.tsx, self.tsy), (self.tex, self.tey), color, -1)
-            white_board = write_text_to_image(white_board, self.name, self.tsx+TITLE_TEXT_LEFT_PADDING,
-                                              self.tsy+TITLE_TEXT_UPPER_PADDING, TITLE_HEIGHT_BETWEEN_TEXT,
+            white_board, wr = write_text_to_image(white_board, self.name, title_text_position, TITLE_HEIGHT_BETWEEN_TEXT,
                                               TITLE_TEXT_MAXLEN, TITLE_TEXT_MAXLINE,
-                                              TITLE_FONT, TITLE_FONT_SIZE, (0, 0, 0))
-            if self.readme_path is not None:
+                                              TITLE_FONT, TITLE_FONT_SIZE, TITLE_TEXT_COLOR)
+            if self.readme_path is not None:  # readme 가 있으면 바디에 적어준다.
                 wrote_counter = 0
                 f = open(self.readme_path, encoding="UTF-8")
                 titles = ["", ""]
@@ -99,36 +107,39 @@ class File:
                 name = "from " + os.path.basename(self.readme_path)
                 form = "{:>"+str(BODY_TEXT_MAXLEN)+"}"
                 titles.append(form.format(name))
+                interval = 0
+                body_text_position_copy = body_text_position.copy()
                 for i in range(3):
-                    white_board = write_text_to_image(white_board, titles[i], self.bsx + BODY_LEFT_PADDING*4,
-                                                      self.bsy + BODY_UPPER_PADDING + BODY_TEXT_INTERVAL * i,
-                                                      BODY_TEXT_INTERVAL, BODY_TEXT_MAXLEN, 2, BODY_FONT,
-                                                      BODY_FONT_SIZE, (0, 0, 0))
+                    white_board, wr = write_text_to_image(white_board, titles[i], body_text_position_copy,
+                                                      BODY_TEXT_INTERVAL, BODY_TEXT_MAXLEN, README_TEXT_MAXLINE,
+                                                      BODY_FONT, BODY_FONT_SIZE, BODY_TEXT_COLOR)
+                    interval = interval + wr
+                    body_text_position_copy[1] = body_text_position[1] + interval * BODY_TEXT_INTERVAL
         elif self.type is "file":
             color = FILE_COLOR
             cv2.rectangle(white_board, (self.sx, self.sy), (self.ex, self.ey), color, -1)
             color = TITLE_COLOR
             cv2.rectangle(white_board, (self.tsx, self.tsy), (self.tex, self.tey), color, -1)
-            white_board = write_text_to_image(white_board, self.name, self.tsx + TITLE_TEXT_LEFT_PADDING,
-                                self.tsy + TITLE_TEXT_UPPER_PADDING, TITLE_HEIGHT_BETWEEN_TEXT,
+            white_board, wr = write_text_to_image(white_board, self.name, title_text_position, TITLE_HEIGHT_BETWEEN_TEXT,
                                 TITLE_TEXT_MAXLEN, TITLE_TEXT_MAXLINE,
-                                TITLE_FONT, TITLE_FONT_SIZE, (0, 0, 0))
+                                TITLE_FONT, TITLE_FONT_SIZE, TITLE_TEXT_COLOR)
 
         elif self.type is "file_pack":
             color = FILE_PACK_COLOR
             cv2.rectangle(white_board, (self.sx, self.sy), (self.ex, self.ey), color, -1)
             color = TITLE_COLOR
             cv2.rectangle(white_board, (self.tsx, self.tsy), (self.tex, self.tey), color, -1)
-            white_board = write_text_to_image(white_board, "source", self.tsx + TITLE_TEXT_LEFT_PADDING,
-                                self.tsy + TITLE_TEXT_UPPER_PADDING, TITLE_HEIGHT_BETWEEN_TEXT,
+            white_board, wr = write_text_to_image(white_board, "source", title_text_position, TITLE_HEIGHT_BETWEEN_TEXT,
                                 TITLE_TEXT_MAXLEN, TITLE_TEXT_MAXLINE,
-                                TITLE_FONT, TITLE_FONT_SIZE, (0, 0, 0))
+                                TITLE_FONT, TITLE_FONT_SIZE, TITLE_TEXT_COLOR)
+            interval=0
+            body_text_position_copy = body_text_position.copy()
             for i in range(len(self.file_names)):
-                white_board = write_text_to_image(white_board, "* " + self.file_names[i], self.bsx+BODY_LEFT_PADDING,
-                                    self.bsy+BODY_UPPER_PADDING+BODY_TEXT_INTERVAL*i, BODY_TEXT_INTERVAL, BODY_TEXT_MAXLEN,
-                                    BODY_TEXT_MAXLINE, BODY_FONT, BODY_FONT_SIZE, (0, 0, 0))
-                cv2.line(white_board, (self.bsx+BODY_LEFT_PADDING*2, self.bsy+BODY_UPPER_PADDING+i*BODY_TEXT_INTERVAL + BODY_UNDERLINE_PADDING),
-                         (self.bex-BODY_LEFT_PADDING*8,self.bsy+BODY_UPPER_PADDING+i*BODY_TEXT_INTERVAL + BODY_UNDERLINE_PADDING), (0, 0, 0), 1)
+                white_board, wr = write_text_to_image(white_board, "* " + self.file_names[i], body_text_position_copy,
+                                                      BODY_TEXT_INTERVAL, BODY_TEXT_MAXLEN,
+                                    BODY_TEXT_MAXLINE, BODY_FONT, BODY_FONT_SIZE, BODY_TEXT_COLOR, True)
+                interval = interval + wr
+                body_text_position_copy[1] = body_text_position[1] + interval * BODY_TEXT_INTERVAL
         return white_board
 
     def add_file(self, file):
@@ -156,20 +167,50 @@ class File:
         return self.path
 
 
-def write_text_to_image(image, text, sx, sy, dy, text_max_len, text_max_line, font, size, color):
-    left = len(text)%text_max_len
-    for i in range(text_max_len - left):
-        text = text+" "
+def write_text_to_image(image, text, position_list, dy, text_max_len, text_max_line, font, size, color, under_line=False):
+    sx, sy, ex, ey = position_list
     pill_image = Image.fromarray(image)
     draw_image = ImageDraw.Draw(pill_image)
-    for i in range(int(len(text)/text_max_len)):
-        if i < text_max_line:
-            #cv2.putText(image, text[i*text_max_len:(i+1)*text_max_len],
-            # (sx, sy + i * dy), font, size, color, thick, cv2.LINE_AA)
-            draw_image.text((sx, sy + i * dy), text[i*text_max_len:(i+1)*text_max_len],
+    left_c = text_max_len
+    wrote_line = 0
+    temp = []
+    wrote = False
+    for i in range(len(text)):
+        if wrote_line >= text_max_line:
+            break
+        if i == len(text)-1:
+            wrote = True
+        c = text[i]
+        if ord('가') <= ord(c) <= ord('힣'):
+            c_size = 2
+        else:
+            c_size = 1
+        if left_c - c_size >= 0:
+            temp.append(c)
+            left_c -= c_size
+        else:
+            draw_image.text((sx, sy + wrote_line * dy), ''.join(temp),
                             font=ImageFont.truetype(font, size), fill=color)
-
-    return np.array(pill_image)
+            if under_line:
+                draw_image.line([sx,
+                                 sy + wrote_line * dy + BODY_UNDERLINE_PADDING,
+                                 ex,
+                                 sy + wrote_line * dy + BODY_UNDERLINE_PADDING],
+                                fill=BODY_UNDERLINE_COLOR, width=1)
+            temp = [c]
+            left_c = text_max_len - c_size
+            wrote_line += 1
+        if wrote:  # 줄 못줄이나
+            draw_image.text((sx, sy + wrote_line * dy), ''.join(temp),
+                            font=ImageFont.truetype(font, size), fill=color)
+            if under_line:
+                draw_image.line([sx,
+                                 sy + wrote_line * dy + BODY_UNDERLINE_PADDING,
+                                 ex,
+                                 sy + wrote_line * dy + BODY_UNDERLINE_PADDING],
+                                fill=BODY_UNDERLINE_COLOR, width=1)
+            wrote_line += 1
+    return np.array(pill_image), wrote_line
 
 
 def go_to_dir(path, file_list, root_len, root_layer, parent):
@@ -177,7 +218,6 @@ def go_to_dir(path, file_list, root_len, root_layer, parent):
     child_max_layer = root_layer
     for file in os.listdir(path):
         if os.path.isdir(os.path.join(path, file)) and file not in DIRECTORY_IGNORED:
-
             child_dir = File(os.path.join(path, file), "dir", root_layer+1, root_len + long, parent)
             file_list.append(child_dir)
             _, child_long, child_layer = go_to_dir(os.path.join(path, file),
@@ -210,8 +250,7 @@ def go_to_dir(path, file_list, root_len, root_layer, parent):
 
 def draw(tree_map, long, total_layer):
     sy_ey_list = [[0, 0] for _ in range(total_layer)]  # psy, pey, long_count
-    print("total layer", total_layer)
-    if DRAW_DENSE_MAP:
+    if DRAW_DENSE_MAP:  # 미제작
         white_board_size = (long * STANDARD_HEIGHT + WB_UPPER_PADDING * 2,
                             total_layer * (WIDTH + WB_WIDTH_BETWEEN_CELLS) + WB_LEFT_PADDING * 2, 3)
         white_board = np.zeros(white_board_size, np.uint8)
@@ -246,14 +285,18 @@ def draw(tree_map, long, total_layer):
             white_board = c.draw(white_board)
     plt.imshow(white_board)
     plt.show()
+    return white_board
 
 
-def draw_directory_tree(path):
-    root = File(path, "dir", 0, 0, None)
+def draw_directory_tree(root_path):
+    root_path = os.path.abspath(root_path)
+    root = File(root_path, "dir", 0, 0, None)
     file_list = [root]
     file_list, long, layer = go_to_dir(path, file_list, root_len=0, root_layer=0, parent=root)
-    draw(file_list, long, layer+1)
+    return draw(file_list, long, layer+1)
 
 
 if __name__ == "__main__":
-    draw_directory_tree("D:/atom")
+    path = "D:/atom"
+    directory_tree = draw_directory_tree(path)
+    cv2.imwrite(os.path.join(path, os.path.basename(os.path.abspath(path))+"_map.jpg"), directory_tree)
