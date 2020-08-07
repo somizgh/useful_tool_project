@@ -298,5 +298,6 @@ def draw_directory_tree(root_path):
 
 if __name__ == "__main__":
     path = "D:/atom"
+    red_square = "image_to_tree"
     directory_tree = draw_directory_tree(path)
     cv2.imwrite(os.path.join(path, os.path.basename(os.path.abspath(path))+"_map.jpg"), directory_tree)

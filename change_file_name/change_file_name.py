@@ -34,9 +34,10 @@ def make_pattern(file_name):
     p = re.compile(pattern)
     return p
 
-def find_pattern(path, option):
+
+def find_pattern(path):
+    # 공통되는 숫자는 그대로 나오도록 해보자
     files = os.listdir(path)
-    files = fill_number(files)
     patterns=[]
     print(files)
     for i in range(len(files)):
@@ -48,14 +49,19 @@ def find_pattern(path, option):
             if j == len(patterns)-1:
                 patterns.append(make_pattern(files[i]))
     print(patterns)
+    return patterns
 
 
-def change_file(path):
+def change_file(path, patterns, option):
+    files = os.listdir(path)
+    for i in range(len(files)):
+
+
     return 0
 
 
 if __name__ == "__main__":
     path = "E:/Ai_projects_data/atom_data/full_images/chrome_images"
-    change_file(path)
-    find_pattern(path,1)
+    patterns = find_pattern(path)
+    change_file(path, patterns, "1to01")
 
